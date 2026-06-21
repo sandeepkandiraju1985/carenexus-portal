@@ -1,0 +1,2027 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CareNexus — Care Management Portal</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,200;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,900;1,9..40,400&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg-primary: #0c1117;
+    --bg-secondary: #141b24;
+    --bg-card: #1a2332;
+    --bg-card-hover: #1f2b3d;
+    --border: #253040;
+    --border-light: #2d3d52;
+    --text-primary: #e8edf3;
+    --text-secondary: #8a9bb5;
+    --text-muted: #5a6d85;
+    --accent: #0fd4a4;
+    --accent-dim: rgba(15, 212, 164, 0.12);
+    --accent-hover: #12e6b4;
+    --danger: #f4516c;
+    --danger-dim: rgba(244, 81, 108, 0.12);
+    --warning: #f5a623;
+    --warning-dim: rgba(245, 166, 35, 0.12);
+    --info: #4da6ff;
+    --info-dim: rgba(77, 166, 255, 0.12);
+    --success: #0fd4a4;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    overflow: hidden;
+    height: 100vh;
+  }
+  h1, h2, h3, .font-display { font-family: 'Playfair Display', serif; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--border-light); }
+
+  /* Sidebar */
+  .sidebar {
+    width: 260px;
+    min-width: 260px;
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    transition: all 0.3s ease;
+    z-index: 50;
+  }
+  .sidebar.collapsed { width: 72px; min-width: 72px; }
+  .sidebar.collapsed .nav-label,
+  .sidebar.collapsed .logo-text,
+  .sidebar.collapsed .user-info-text,
+  .sidebar.collapsed .section-label { display: none; }
+  .sidebar.collapsed .nav-item { justify-content: center; padding: 0.75rem; }
+  .sidebar.collapsed .nav-item i { margin-right: 0; }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    padding: 0.6rem 1rem;
+    margin: 2px 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
+    font-size: 0.875rem;
+    position: relative;
+  }
+  .nav-item:hover { background: var(--bg-card); color: var(--text-primary); }
+  .nav-item.active {
+    background: var(--accent-dim);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .nav-item.active::before {
+    content: '';
+    position: absolute;
+    left: -8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 60%;
+    background: var(--accent);
+    border-radius: 0 3px 3px 0;
+  }
+  .nav-item i { width: 20px; text-align: center; margin-right: 12px; font-size: 0.95rem; }
+  .nav-badge {
+    margin-left: auto;
+    background: var(--danger);
+    color: white;
+    font-size: 0.65rem;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-weight: 700;
+  }
+
+  /* Main content */
+  .main-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    height: 100vh;
+  }
+
+  /* Cards */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    transition: all 0.25s ease;
+  }
+  .card:hover { border-color: var(--border-light); }
+  .card-glow:hover { box-shadow: 0 0 30px rgba(15, 212, 164, 0.06); }
+
+  /* Stat cards */
+  .stat-card {
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-card::after {
+    content: '';
+    position: absolute;
+    top: -30px;
+    right: -30px;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    opacity: 0.06;
+    transition: all 0.3s ease;
+  }
+  .stat-card:hover::after { transform: scale(1.3); opacity: 0.1; }
+  .stat-accent::after { background: var(--accent); }
+  .stat-danger::after { background: var(--danger); }
+  .stat-warning::after { background: var(--warning); }
+  .stat-info::after { background: var(--info); }
+
+  /* Tables */
+  .data-table { width: 100%; border-collapse: collapse; }
+  .data-table th {
+    text-align: left;
+    padding: 0.75rem 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+  }
+  .data-table td {
+    padding: 0.75rem 1rem;
+    font-size: 0.85rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-secondary);
+  }
+  .data-table tr:hover td { background: rgba(15, 212, 164, 0.03); color: var(--text-primary); }
+
+  /* Status badges */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  .badge-accent { background: var(--accent-dim); color: var(--accent); }
+  .badge-danger { background: var(--danger-dim); color: var(--danger); }
+  .badge-warning { background: var(--warning-dim); color: var(--warning); }
+  .badge-info { background: var(--info-dim); color: var(--info); }
+
+  /* Buttons */
+  .btn-primary {
+    background: var(--accent);
+    color: var(--bg-primary);
+    font-weight: 600;
+    padding: 0.55rem 1.2rem;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 4px 15px rgba(15, 212, 164, 0.25); }
+  .btn-secondary {
+    background: var(--bg-card);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    padding: 0.55rem 1.2rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-sm { padding: 0.35rem 0.8rem; font-size: 0.78rem; }
+  .btn-icon {
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .btn-icon:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Input */
+  .form-input {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.55rem 0.85rem;
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    width: 100%;
+    outline: none;
+    transition: border-color 0.2s ease;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .form-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+  .form-input::placeholder { color: var(--text-muted); }
+  .form-label { font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; display: block; }
+
+  select.form-input { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%235a6d85' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 30px; }
+  textarea.form-input { resize: vertical; min-height: 80px; }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+  }
+  .modal-overlay.show { opacity: 1; pointer-events: all; }
+  .modal-box {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.75rem;
+    width: 90%;
+    max-width: 600px;
+    max-height: 85vh;
+    overflow-y: auto;
+    transform: translateY(20px) scale(0.97);
+    transition: transform 0.25s ease;
+  }
+  .modal-overlay.show .modal-box { transform: translateY(0) scale(1); }
+
+  /* Toast */
+  .toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .toast {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.85rem 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 300px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    animation: toastIn 0.35s ease forwards;
+    font-size: 0.85rem;
+  }
+  .toast.removing { animation: toastOut 0.3s ease forwards; }
+  @keyframes toastIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+  @keyframes toastOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
+
+  /* Tab system */
+  .tab-bar { display: flex; gap: 2px; border-bottom: 1px solid var(--border); margin-bottom: 1.25rem; }
+  .tab-item {
+    padding: 0.65rem 1rem;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s ease;
+    font-weight: 500;
+  }
+  .tab-item:hover { color: var(--text-secondary); }
+  .tab-item.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+
+  /* Progress bar */
+  .progress-bar {
+    height: 6px;
+    background: var(--bg-primary);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.6s ease;
+  }
+
+  /* Timeline */
+  .timeline-item { position: relative; padding-left: 28px; padding-bottom: 1.5rem; }
+  .timeline-item::before {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 8px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid var(--accent);
+    background: var(--bg-primary);
+    z-index: 1;
+  }
+  .timeline-item::after {
+    content: '';
+    position: absolute;
+    left: 9px;
+    top: 22px;
+    width: 2px;
+    height: calc(100% - 18px);
+    background: var(--border);
+  }
+  .timeline-item:last-child::after { display: none; }
+
+  /* Avatar */
+  .avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+  }
+
+  /* Page transitions */
+  .page-view { display: none; animation: fadeIn 0.3s ease; }
+  .page-view.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Ambient glow */
+  .ambient-glow {
+    position: fixed;
+    width: 400px;
+    height: 400px;
+    border-radius: 50%;
+    filter: blur(120px);
+    opacity: 0.035;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Chat */
+  .chat-bubble {
+    max-width: 75%;
+    padding: 0.65rem 0.9rem;
+    border-radius: 12px;
+    font-size: 0.84rem;
+    line-height: 1.5;
+  }
+  .chat-incoming { background: var(--bg-card); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
+  .chat-outgoing { background: var(--accent-dim); color: var(--accent); border-bottom-right-radius: 4px; margin-left: auto; }
+
+  /* Calendar */
+  .cal-day {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    color: var(--text-secondary);
+  }
+  .cal-day:hover { background: var(--bg-card); }
+  .cal-day.today { background: var(--accent); color: var(--bg-primary); font-weight: 700; }
+  .cal-day.has-event { position: relative; }
+  .cal-day.has-event::after {
+    content: '';
+    position: absolute;
+    bottom: 2px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  .cal-day.other-month { color: var(--text-muted); opacity: 0.4; }
+
+  /* Pulse animation */
+  @keyframes pulse-ring {
+    0% { transform: scale(0.8); opacity: 1; }
+    100% { transform: scale(1.6); opacity: 0; }
+  }
+  .pulse-dot {
+    position: relative;
+  }
+  .pulse-dot::after {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    border: 2px solid var(--accent);
+    animation: pulse-ring 1.5s ease-out infinite;
+  }
+
+  /* Notification dropdown */
+  .notif-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 8px;
+    width: 360px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 15px 50px rgba(0,0,0,0.4);
+    z-index: 60;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-8px);
+    transition: all 0.2s ease;
+  }
+  .notif-dropdown.show { opacity: 1; pointer-events: all; transform: translateY(0); }
+
+  /* Checkbox custom */
+  .custom-check {
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--border-light);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+  }
+  .custom-check.checked { background: var(--accent); border-color: var(--accent); }
+  .custom-check.checked::after { content: '\f00c'; font-family: 'Font Awesome 6 Free'; font-weight: 900; font-size: 0.6rem; color: var(--bg-primary); }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Ambient background glows -->
+<div class="ambient-glow" style="top: -100px; left: -100px; background: var(--accent);"></div>
+<div class="ambient-glow" style="bottom: -150px; right: -100px; background: var(--info);"></div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Modal overlay -->
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box" id="modalBox"></div>
+</div>
+
+<!-- App layout -->
+<div style="display:flex; height:100vh; position:relative; z-index:1;">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <!-- Logo -->
+    <div style="padding:1.25rem 1rem; display:flex; align-items:center; gap:10px; border-bottom:1px solid var(--border);">
+      <div style="width:36px;height:36px;border-radius:10px;background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <i class="fas fa-heartbeat" style="color:var(--bg-primary);font-size:1rem;"></i>
+      </div>
+      <div class="logo-text">
+        <div style="font-family:'Playfair Display',serif;font-weight:900;font-size:1.1rem;line-height:1;">CareNexus</div>
+        <div style="font-size:0.65rem;color:var(--text-muted);letter-spacing:0.05em;">CARE MANAGEMENT</div>
+      </div>
+    </div>
+
+    <!-- Nav -->
+    <nav style="flex:1;overflow-y:auto;padding:0.5rem 0;">
+      <div class="section-label" style="padding:0.75rem 1.25rem 0.35rem;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);">Overview</div>
+      <div class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard')">
+        <i class="fas fa-th-large"></i><span class="nav-label">Dashboard</span>
+      </div>
+
+      <div class="section-label" style="padding:0.75rem 1.25rem 0.35rem;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);">Members</div>
+      <div class="nav-item" data-page="members" onclick="navigateTo('members')">
+        <i class="fas fa-users"></i><span class="nav-label">Member Directory</span><span class="nav-badge nav-label">248</span>
+      </div>
+      <div class="nav-item" data-page="careplans" onclick="navigateTo('careplans')">
+        <i class="fas fa-clipboard-list"></i><span class="nav-label">Care Plans</span>
+      </div>
+      <div class="nav-item" data-page="assessments" onclick="navigateTo('assessments')">
+        <i class="fas fa-file-medical-alt"></i><span class="nav-label">Assessments</span><span class="nav-badge nav-label">12</span>
+      </div>
+
+      <div class="section-label" style="padding:0.75rem 1.25rem 0.35rem;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);">Coordination</div>
+      <div class="nav-item" data-page="tasks" onclick="navigateTo('tasks')">
+        <i class="fas fa-tasks"></i><span class="nav-label">Tasks & Workflows</span><span class="nav-badge nav-label">5</span>
+      </div>
+      <div class="nav-item" data-page="scheduling" onclick="navigateTo('scheduling')">
+        <i class="fas fa-calendar-alt"></i><span class="nav-label">Scheduling</span>
+      </div>
+      <div class="nav-item" data-page="messages" onclick="navigateTo('messages')">
+        <i class="fas fa-comment-dots"></i><span class="nav-label">Messages</span><span class="nav-badge nav-label">3</span>
+      </div>
+      <div class="nav-item" data-page="careteam" onclick="navigateTo('careteam')">
+        <i class="fas fa-user-nurse"></i><span class="nav-label">Care Team</span>
+      </div>
+
+      <div class="section-label" style="padding:0.75rem 1.25rem 0.35rem;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);">Operations</div>
+      <div class="nav-item" data-page="authorizations" onclick="navigateTo('authorizations')">
+        <i class="fas fa-shield-alt"></i><span class="nav-label">Authorizations</span>
+      </div>
+      <div class="nav-item" data-page="documents" onclick="navigateTo('documents')">
+        <i class="fas fa-folder-open"></i><span class="nav-label">Documents</span>
+      </div>
+      <div class="nav-item" data-page="outcomes" onclick="navigateTo('outcomes')">
+        <i class="fas fa-chart-line"></i><span class="nav-label">Outcomes</span>
+      </div>
+      <div class="nav-item" data-page="compliance" onclick="navigateTo('compliance')">
+        <i class="fas fa-check-double"></i><span class="nav-label">Compliance</span>
+      </div>
+      <div class="nav-item" data-page="reports" onclick="navigateTo('reports')">
+        <i class="fas fa-chart-bar"></i><span class="nav-label">Reports</span>
+      </div>
+    </nav>
+
+    <!-- User -->
+    <div style="padding:0.75rem;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px;">
+      <div class="avatar" style="background:linear-gradient(135deg,var(--accent),#0a9d7a);color:var(--bg-primary);">SJ</div>
+      <div class="user-info-text" style="flex:1;min-width:0;">
+        <div style="font-size:0.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Dr. Sarah Jensen</div>
+        <div style="font-size:0.7rem;color:var(--text-muted);">Care Manager</div>
+      </div>
+      <button class="btn-icon user-info-text" style="width:28px;height:28px;font-size:0.7rem;" onclick="showToast('Settings coming soon','info')"><i class="fas fa-cog"></i></button>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main-content" id="mainContent">
+
+    <!-- Top bar -->
+    <header style="position:sticky;top:0;z-index:40;background:rgba(12,17,23,0.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0.75rem 1.5rem;display:flex;align-items:center;gap:16px;">
+      <button class="btn-icon" onclick="toggleSidebar()" aria-label="Toggle sidebar"><i class="fas fa-bars"></i></button>
+      <div style="flex:1;position:relative;max-width:420px;">
+        <i class="fas fa-search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:0.8rem;"></i>
+        <input class="form-input" style="padding-left:34px;" placeholder="Search members, plans, tasks..." id="globalSearch" onkeyup="handleGlobalSearch(event)">
+      </div>
+      <div style="flex:1;"></div>
+      <div style="position:relative;">
+        <button class="btn-icon" onclick="toggleNotifications()" aria-label="Notifications" style="position:relative;">
+          <i class="fas fa-bell"></i>
+          <span style="position:absolute;top:-2px;right:-2px;width:16px;height:16px;background:var(--danger);border-radius:50%;font-size:0.6rem;display:flex;align-items:center;justify-content:center;font-weight:700;" id="notifCount">7</span>
+        </button>
+        <div class="notif-dropdown" id="notifDropdown">
+          <div style="padding:1rem 1.25rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-weight:700;font-size:0.9rem;">Notifications</span>
+            <button style="background:none;border:none;color:var(--accent);font-size:0.78rem;cursor:pointer;" onclick="clearNotifications()">Mark all read</button>
+          </div>
+          <div style="max-height:320px;overflow-y:auto;" id="notifList"></div>
+        </div>
+      </div>
+      <button class="btn-icon" onclick="showToast('Help center opened','info')" aria-label="Help"><i class="fas fa-question-circle"></i></button>
+    </header>
+
+    <!-- ==================== DASHBOARD PAGE ==================== -->
+    <div class="page-view active" id="page-dashboard" style="padding:1.5rem;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+        <div>
+          <h1 style="font-size:1.75rem;font-weight:900;margin-bottom:2px;">Good Morning, Dr. Jensen</h1>
+          <p style="color:var(--text-muted);font-size:0.88rem;">Here's your care management overview for today</p>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-secondary btn-sm" onclick="showToast('Report exported','success')"><i class="fas fa-download"></i> Export</button>
+          <button class="btn-primary btn-sm" onclick="openAddMemberModal()"><i class="fas fa-plus"></i> Add Member</button>
+        </div>
+      </div>
+
+      <!-- Stat cards -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-bottom:1.5rem;">
+        <div class="card stat-card stat-accent card-glow">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+            <div>
+              <div style="font-size:0.75rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Active Members</div>
+              <div style="font-size:2rem;font-weight:900;margin:4px 0;" class="font-display">248</div>
+              <div style="font-size:0.78rem;color:var(--accent);"><i class="fas fa-arrow-up" style="font-size:0.65rem;"></i> 12% from last month</div>
+            </div>
+            <div style="width:42px;height:42px;border-radius:10px;background:var(--accent-dim);display:flex;align-items:center;justify-content:center;">
+              <i class="fas fa-users" style="color:var(--accent);"></i>
+            </div>
+          </div>
+        </div>
+        <div class="card stat-card stat-warning card-glow">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+            <div>
+              <div style="font-size:0.75rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Pending Tasks</div>
+              <div style="font-size:2rem;font-weight:900;margin:4px 0;" class="font-display">37</div>
+              <div style="font-size:0.78rem;color:var(--warning);"><i class="fas fa-exclamation-triangle" style="font-size:0.65rem;"></i> 8 high priority</div>
+            </div>
+            <div style="width:42px;height:42px;border-radius:10px;background:var(--warning-dim);display:flex;align-items:center;justify-content:center;">
+              <i class="fas fa-tasks" style="color:var(--warning);"></i>
+            </div>
+          </div>
+        </div>
+        <div class="card stat-card stat-danger card-glow">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+            <div>
+              <div style="font-size:0.75rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Care Gaps</div>
+              <div style="font-size:2rem;font-weight:900;margin:4px 0;" class="font-display">19</div>
+              <div style="font-size:0.78rem;color:var(--danger);"><i class="fas fa-arrow-down" style="font-size:0.65rem;"></i> 3 resolved this week</div>
+            </div>
+            <div style="width:42px;height:42px;border-radius:10px;background:var(--danger-dim);display:flex;align-items:center;justify-content:center;">
+              <i class="fas fa-exclamation-circle" style="color:var(--danger);"></i>
+            </div>
+          </div>
+        </div>
+        <div class="card stat-card stat-info card-glow">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+            <div>
+              <div style="font-size:0.75rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Authorizations</div>
+              <div style="font-size:2rem;font-weight:900;margin:4px 0;" class="font-display">14</div>
+              <div style="font-size:0.78rem;color:var(--info);"><i class="fas fa-clock" style="font-size:0.65rem;"></i> 6 pending review</div>
+            </div>
+            <div style="width:42px;height:42px;border-radius:10px;background:var(--info-dim);display:flex;align-items:center;justify-content:center;">
+              <i class="fas fa-shield-alt" style="color:var(--info);"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Charts row -->
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:1rem;margin-bottom:1.5rem;">
+        <div class="card card-glow">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+            <div style="font-weight:700;font-size:0.95rem;">Member Enrollment Trend</div>
+            <div style="display:flex;gap:4px;">
+              <button class="btn-secondary btn-sm chart-range active-range" data-range="6m" onclick="updateEnrollChart('6m',this)">6M</button>
+              <button class="btn-secondary btn-sm chart-range" data-range="1y" onclick="updateEnrollChart('1y',this)">1Y</button>
+            </div>
+          </div>
+          <canvas id="enrollChart" height="180"></canvas>
+        </div>
+        <div class="card card-glow">
+          <div style="font-weight:700;font-size:0.95rem;margin-bottom:1rem;">Risk Distribution</div>
+          <canvas id="riskChart" height="180"></canvas>
+        </div>
+      </div>
+
+      <!-- Bottom row -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+        <!-- Recent activity -->
+        <div class="card card-glow">
+          <div style="font-weight:700;font-size:0.95rem;margin-bottom:1rem;">Recent Activity</div>
+          <div id="dashActivity"></div>
+        </div>
+        <!-- Upcoming -->
+        <div class="card card-glow">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+            <div style="font-weight:700;font-size:0.95rem;">Upcoming Today</div>
+            <button class="btn-secondary btn-sm" onclick="navigateTo('scheduling')">View All</button>
+          </div>
+          <div id="dashUpcoming"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== MEMBERS PAGE ==================== -->
+    <div class="page-view" id="page-members" style="padding:1.5rem;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+        <div>
+          <h1 style="font-size:1.5rem;font-weight:900;" class="font-display">Member Directory</h1>
+          <p style="color:var(--text-muted);font-size:0.85rem;">Manage and view all enrolled members</p>
+        </div>
+        <button class="btn-primary" onclick="openAddMemberModal()"><i class="fas fa-plus"></i> Add Member</button>
+      </div>
+      <!-- Filters -->
+      <div class="card" style="margin-bottom:1rem;padding:1rem;display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+        <input class="form-input" style="max-width:260px;" placeholder="Search by name, ID, or condition..." id="memberSearch" oninput="filterMembers()">
+        <select class="form-input" style="max-width:160px;" id="memberStatusFilter" onchange="filterMembers()">
+          <option value="">All Status</option>
+          <option value="Active">Active</option>
+          <option value="Pending">Pending</option>
+          <option value="Discharged">Discharged</option>
+        </select>
+        <select class="form-input" style="max-width:160px;" id="memberRiskFilter" onchange="filterMembers()">
+          <option value="">All Risk Levels</option>
+          <option value="High">High Risk</option>
+          <option value="Moderate">Moderate Risk</option>
+          <option value="Low">Low Risk</option>
+        </select>
+        <select class="form-input" style="max-width:160px;" id="memberProgramFilter" onchange="filterMembers()">
+          <option value="">All Programs</option>
+          <option value="CM">Case Management</option>
+          <option value="CCM">Chronic Care</option>
+          <option value="TCM">Transitional Care</option>
+          <option value="BH">Behavioral Health</option>
+        </select>
+      </div>
+      <!-- Table -->
+      <div class="card" style="padding:0;overflow-x:auto;">
+        <table class="data-table" id="memberTable">
+          <thead>
+            <tr>
+              <th>Member</th>
+              <th>ID</th>
+              <th>DOB</th>
+              <th>Program</th>
+              <th>Risk</th>
+              <th>Status</th>
+              <th>Care Manager</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="memberTableBody"></tbody>
+        </table>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:1rem;">
+        <span style="font-size:0.82rem;color:var(--text-muted);" id="memberCount">Showing 0 members</span>
+        <div style="display:flex;gap:4px;" id="memberPagination"></div>
+      </div>
+    </div>
+
+    <!-- ==================== CARE PLANS PAGE ==================== -->
+    <div class="page-view" id="page-careplans" style="padding:1.5rem;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+        <div>
+          <h1 style="font-size:1.5rem;font-weight:900;" class="font-display">Care Plans</h1>
+          <p style="color:var(--text-muted);font-size:0.85rem;">Create, manage, and track individualized care plans</p>
+        </div>
+        <button class="btn-primary" onclick="openCreateCarePlanModal()"><i class="fas fa-plus"></i> New Care Plan</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:1rem;" id="carePlanGrid"></div>
+    </div>
+
+    <!-- ==================== ASSESSMENTS PAGE ==================== -->
+    <div class="page-view" id="page-assessments" style="padding:1.5rem;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+        <div>
+          <h1 style="font-size:1.5rem;font-weight:900;" class="font-display">Assessments</h1>
+          <p style="color:var(--text-muted);font-size:0.85rem;">Health risk assessments and needs evaluations</p>
+        </div>
+        <button class="btn-primary" onclick="openNewAssessmentModal()"><i class="fas fa-plus"></i> New Assessment</button>
+      </div>
+      <div class="tab-bar" id="assessTabBar">
+        <div class="tab-item active" onclick="switchAssessTab('all',this)">All Assessments</div>
+        <div class="tab-item" onclick="switchAssessTab('pending',this)">Pending</div>
+        <div class="tab-item" onclick="switchAssessTab('completed',this)">Completed</div>
+        <div class="tab-item" onclick="switchAssessTab('overdue',this)">Overdue</div>
+      </div>
+      <div class="card" style="padding:0;overflow-x:auto;">
+        <table class="data-table">
+          <thead><tr><th>Member</th><th>Assessment Type</th><th>Assigned Date</th><th>Due Date</th><th>Status</th><th>Score</th><th>Actions</th></tr></thead>
+          <tbody id="assessTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ==================== TASKS PAGE ==================== -->
+    <div class="page-view" id="page-tasks" style="padding:1.5rem;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+        <div>
+          <h1 style="font-size:1.5rem;font-weight:900;" class="font-display">Tasks & Workflows</h1>
+          <p style="color:var(--text-muted);font-size:0.85rem;">Manage care coordination tasks and workflows</p>
+        </div>
+        <button class="btn-primary" onclick="openNewTaskModal()"><i class="fas fa-plus"></i> New Task</button>
+      </div>
+      <div class="tab-bar" id="taskTabBar">
+        <div class="tab-item active" onclick="switchTaskTab('all',this)">All Tasks</div>
+        <div class="tab-item" onclick="switchTaskTab('today',this)">Due Today</div>
+        <div class="tab-item" onclick="switchTaskTab('overdue',this)">Overdue</div>
+        <div class="tab-item" onclick="switchTaskTab('completed',this)">Completed</div>
+      </div>
+      <!-- Kanban board -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;min-height:400px;" id="taskBoard">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:0.75rem;">
+            <div style="width:8px;height:8px;border-radius:50%;background:var(--warning);"></div>
+            <span style="font-weight:700;font-size:0.85rem;">To Do</span>
+            <span style="font-size:0.75rem;color:var(--text-muted);margin-left:auto;" id="todoCount">0</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;" id="todoColumn"></div>
+        </div>
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:0.75rem;">
+            <div style="width:8px;height:8px;border-radius:50%;background:var(--info);"></div>
+            <span style="font-weight:700;font-size:0.85rem;">In Progress</span>
+            <span style="font-size:0.75rem;color:var(--text-muted);margin-left:auto;" id="inprogressCount">0</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;" id="inprogressColumn"></div>
+        </div>
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:0.75rem;">
+            <div style="width:8px;height:8px;border-radius:50%;background:var(--accent);"></div>
+            <span style="font-weight:700;font-size:0.85rem;">Completed</span>
+            <span style="font-size:0.75rem;color:var(--text-muted);margin-left:auto;" id="completedCount">0</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;" id="completedColumn"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== SCHEDULING PAGE ==================== -->
+    <div class="page-view" id="page-scheduling" style="padding:1.5rem;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+        <div>
+          <h1 style="font-size:1.5rem;font-weight:900;" class="font-display">Scheduling</h1>
+          <p style="color:var(--text-muted);font-size:0.85rem;">Appointments and care team scheduling</p>
+        </div>
+        <button class="btn-primary" onclick="openNewAppointmentModal()"><i class="fas fa-plus"></i> New Appointment</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 320px;gap:1rem;">
+        <div class="card card-glow">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+            <button class="btn-icon" onclick="changeMonth(-1)"><i class="fas fa-chevron-left"></i></button>
+            <span style="font-weight:700;font-size:1rem;" id="calMonthLabel"></span>
+            <button class="btn-icon" onclick="changeMonth(1)"><i class="fas fa-chevron-right"></i></button>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;margin-bottom:8px;">
+            <div style="font-size:0.7rem;color:var(--text-muted);font-weight:600;padding:4px;">SUN</div>
+            <div style="font-size:0.7rem;color:var(--text-muted);font-weight:600;padding:4px;">MON</div>
+            <div style="font-size:0.7rem;color:var(--text-muted);font-weight:600;padding:4px;">TUE</div>
+            <div style="font-size:0.7rem;color:var(--text-muted);font-weight:600;padding:4px;">WED</div>
+            <div style="font-size:0.7rem;color:var(--text-muted);font-weight:600;padding:4px;">THU</div>
+            <div style="font-size:0.7rem;color:var(--text-muted);font-weight:600;padding:4px;">FRI</div>
+            <div style="font-size:0.7rem;color:var(--text-muted);font-weight:600;padding:4px;">SAT</div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;justify-items:center;" id="calGrid"></div>
+        </div>
+        <div>
+          <div class="card" style="margin-bottom:1rem;">
+            <div style="font-weight:700;font-size:0.9rem;margin-bottom:0.75rem;" id="selectedDateLabel">Today's Appointments</div>
+            <div id="apptList" style="display:flex;flex-direction:column;gap:8px;"></div>
+          </div>
+          <div class="card">
+            <div style="font-weight:700;font-size:0.9rem;margin-bottom:0.75rem;">Appointment Stats</div>
+            <div style="display:flex;flex-direction:column;gap:12px;">
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:4px;">
+                  <span style="color:var(--text-secondary);">Completed</span><span style="color:var(--accent);font-weight:600;">68%</span>
+                </div>
+                <div class="progress-bar"><div class="progress-fill" style="width:68%;background:var(--accent);"></div></div>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:4px;">
+                  <span style="color:var(--text-secondary);">Cancelled</span><span style="color:var(--danger);font-weight:600;">12%</span>
+                </div>
+                <div class="progress-bar"><div class="progress-fill" style="width:12%;background:var(--danger);"></div></div>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:4px;">
+                  <span style="color:var(--text-secondary);">No-Show</span><span style="color:var(--warning);font-weight:600;">8%</span>
+                </div>
+                <div class="progress-bar"><div class="progress-fill" style="width:8%;background:var(--warning);"></div></div>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:4px;">
+                  <span style="color:var(--text-secondary);">Upcoming</span><span style="color:var(--info);font-weight:600;">12%</span>
+                </div>
+                <div class="progress-bar"><div class="progress-fill" style="width:12%;background:var(--info);"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== MESSAGES PAGE ==================== -->
+    <div class="page-view" id="page-messages" style="padding:1.5rem;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+        <div>
+          <h1 style="font-size:1.5rem;font-weight:900;" class="font-display">Secure Messages</h1>
+          <p style="color:var(--text-muted);font-size:0.85rem;">HIPAA-compliant care team communication</p>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:280px 1fr;gap:0;border:1px solid var(--border);border-radius:12px;overflow:hidden;height:calc(100vh - 180px);">
+        <!-- Conversation list -->
+        <div style="background:var(--bg-secondary);border-right:1px solid var(--border);display:flex;flex-direction:column;">
+          <div style="padding:0.75rem;border-bottom:1px solid var(--border);">
+            <input class="form-input" placeholder="Search conversations..." style="font-size:0.82rem;">
+          </div>
+          <div style="flex:1;overflow-y:auto;" id="convList"></div>
+        </div>
+        <!-- Chat area -->
+        <div style="display:flex;flex-direction:column;background:var(--bg-primary);">
+          <div style="padding:0.85rem 1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;background:var(--bg-secondary);" id="chatHeader">
+            <div class="avatar" style="background:var(--info-dim);color:var(--info);width:32px;height:32px;font-size:0.7rem;">RP</div>
+            <div>
+              <div style="font-size:0.85rem;font-weight:600;">Rebecca Perez, RN</div>
+              <div style="font-size:0.7rem;color:var(--accent);">Online</div>
+            </div>
+          </div>
+          <div style="flex:1;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:10px;" id="chatMessages"></div>
+          <div style="padding:0.75rem 1rem;border-top:1px solid var(--border);display:flex;gap:8px;background:var(--bg-secondary);">
+            <button class="btn-icon" style="flex-shrink:0;" onclick="showToast('Attachment feature','info')"><i class="fas fa-paperclip"></i></button>
+            <input class="form-input" placeholder="Type a message..." id="chatInput" onkeydown="if(event.key==='Enter')sendMessage()">
+            <button class="btn-primary" style="flex-shrink:0;padding:0.55rem 1rem;" onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== CARE TEAM PAGE ==================== -->
+    <div class="page-view" id="page-careteam" style="padding:1.5rem;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+        <div>
+          <h1 style="font-size:1.5rem;font-weight:900;" class="font-display">Care Team</h1>
+          <p style="color:var(--text-muted);font-size:0.85rem;">Manage care team members, roles, and assignments</p>
+        </div>
+        <button class="btn-primary" onclick="openAddTeamMemberModal()"><i class="fas fa-plus"></i> Add Team Member</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;" id="teamGrid"></div>
+    </div>
+
+    <!-- ==================== AUTHORIZATIONS PAGE ==================== -->
+    <div class="page-view" id="page-authorizations" style="padding:1.5rem;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+        <div>
+          <h1 style="font-size:1.5rem;font-weight:900;" class="font-display">Authorizations</h1>
+          <p style="color:var(--text-muted);font-size:0.85rem;">Prior authorizations and service approvals</p>
+        </div>
+        <button class="btn-primary" onclick="openNewAuthModal()"><i class="fas fa-plus"></i> New Authorization</button>
+      </div>
+      <div class="card" style="padding:0;overflow-x:auto;">
+        <table class="data-table">
+          <thead><tr><th>Auth ID</th><th>Member</th><th>Service</th><th>Provider</th><th>Submitted</th><th>Expiration</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="authTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ==================== DOCUMENTS PAGE ==================== -->
+    <div class="page-view" id="page-documents" style="padding:1.5rem;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+        <div>
+          <h1 style="font-size:1.5rem;font-weight:900;" class="font-display">Document Management</h1>
+          <p style="color:var(--text-muted);font-size:0.85rem;">Upload, organize, and manage member documents</p>
+        </div>
+        <button class="btn-primary" onclick="showToast('File upload dialog opened','info')"><i class="fas fa-upload"></i> Upload Document</button>
+      </div>
+      <div class="tab-bar">
+        <div class="tab-item active">All Documents</div>
+        <div class="tab-item">Clinical Notes</div>
+        <div class="tab-item">Lab Results</div>
+        <div class="tab-item">Consent Forms</div>
+        <div class="tab-item">Correspondence</div>
+      </div>
+      <div class="card" style="padding:0;overflow-x:auto;">
+        <table class="data-table">
+          <thead><tr><th>Document</th><th>Member</th><th>Category</th><th>Uploaded By</th><th>Date</th><th>Size</th><th>Actions</th></tr></thead>
+          <tbody id="docTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ==================== OUTCOMES PAGE ==================== -->
+    <div class="page-view" id="page-outcomes" style="padding:1.5rem;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+        <div>
+          <h1 style="font-size:1.5rem;font-weight:900;" class="font-display">Outcomes Tracking</h1>
+          <p style="color:var(--text-muted);font-size:0.85rem;">Monitor and measure care plan outcomes</p>
+        </div>
+        <button class="btn-secondary" onclick="showToast('Report generated','success')"><i class="fas fa-file-pdf"></i> Generate Report</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-bottom:1.5rem;">
+        <div class="card" style="text-align:center;">
+          <div style="font-size:0.72rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;">ER Visits Reduced</div>
+          <div style="font-size:1.8rem;font-weight:900;color:var(--accent);margin:4px 0;" class="font-display">32%</div>
+          <div style="font-size:0.75rem;color:var(--text-secondary);">vs. baseline</div>
+        </div>
+        <div class="card" style="text-align:center;">
+          <div style="font-size:0.72rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;">Hospital Readmissions</div>
+          <div style="font-size:1.8rem;font-weight:900;color:var(--info);margin:4px 0;" class="font-display">8.2%</div>
+          <div style="font-size:0.75rem;color:var(--text-secondary);">below target 12%</div>
+        </div>
+        <div class="card" style="text-align:center;">
+          <div style="font-size:0.72rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;">Goal Achievement</div>
+          <div style="font-size:1.8rem;font-weight:900;color:var(--warning);margin:4px 0;" class="font-display">76%</div>
+          <div style="font-size:0.75rem;color:var(--text-secondary);">care plan goals met</div>
+        </div>
+        <div class="card" style="text-align:center;">
+          <div style="font-size:0.72rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;">Patient Satisfaction</div>
+          <div style="font-size:1.8rem;font-weight:900;color:var(--accent);margin:4px 0;" class="font-display">4.6</div>
+          <div style="font-size:0.75rem;color:var(--text-secondary);">out of 5.0</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+        <div class="card card-glow">
+          <div style="font-weight:700;font-size:0.95rem;margin-bottom:1rem;">Outcome Trends</div>
+          <canvas id="outcomeChart" height="200"></canvas>
+        </div>
+        <div class="card card-glow">
+          <div style="font-weight:700;font-size:0.95rem;margin-bottom:1rem;">Quality Metrics</div>
+          <canvas id="qualityChart" height="200"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== COMPLIANCE PAGE ==================== -->
+    <div class="page-view" id="page-compliance" style="padding:1.5rem;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+        <div>
+          <h1 style="font-size:1.5rem;font-weight:900;" class="font-display">Compliance Tracking</h1>
+          <p style="color:var(--text-muted);font-size:0.85rem;">Regulatory compliance and audit readiness</p>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem;margin-bottom:1.5rem;" id="complianceCards"></div>
+      <div class="card card-glow">
+        <div style="font-weight:700;font-size:0.95rem;margin-bottom:1rem;">Compliance Timeline</div>
+        <div id="complianceTimeline"></div>
+      </div>
+    </div>
+
+    <!-- ==================== REPORTS PAGE ==================== -->
+    <div class="page-view" id="page-reports" style="padding:1.5rem;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+        <div>
+          <h1 style="font-size:1.5rem;font-weight:900;" class="font-display">Reports & Analytics</h1>
+          <p style="color:var(--text-muted);font-size:0.85rem;">Generate and schedule operational reports</p>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;" id="reportGrid"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ===================== DATA =====================
+
+const members = [
+  { id:'M-1001', name:'Margaret Thompson', dob:'1952-03-15', program:'CM', risk:'High', status:'Active', cm:'Dr. Sarah Jensen', phone:'(555) 234-5678', condition:'CHF, Diabetes Type 2', gender:'Female', address:'142 Oak St, Springfield' },
+  { id:'M-1002', name:'James Rodriguez', dob:'1948-07-22', program:'CCM', risk:'High', status:'Active', cm:'Rebecca Perez, RN', phone:'(555) 345-6789', condition:'COPD, Hypertension', gender:'Male', address:'88 Elm Ave, Riverside' },
+  { id:'M-1003', name:'Dorothy Williams', dob:'1960-11-08', program:'TCM', risk:'Moderate', status:'Active', cm:'Dr. Sarah Jensen', phone:'(555) 456-7890', condition:'Post-Surgical Recovery', gender:'Female', address:'305 Pine Dr, Lakewood' },
+  { id:'M-1004', name:'Robert Chen', dob:'1955-01-30', program:'BH', risk:'Moderate', status:'Active', cm:'Michael Okafor, LCSW', phone:'(555) 567-8901', condition:'Depression, Anxiety', gender:'Male', address:'27 Maple Ct, Fairview' },
+  { id:'M-1005', name:'Patricia Davis', dob:'1945-09-12', program:'CM', risk:'High', status:'Active', cm:'Rebecca Perez, RN', phone:'(555) 678-9012', condition:'CHF, CKD Stage 3', gender:'Female', address:'910 Cedar Ln, Greenville' },
+  { id:'M-1006', name:'William Brown', dob:'1958-04-05', program:'CCM', risk:'Low', status:'Active', cm:'Dr. Sarah Jensen', phone:'(555) 789-0123', condition:'Diabetes Type 2', gender:'Male', address:'44 Birch Rd, Hillcrest' },
+  { id:'M-1007', name:'Helen Martinez', dob:'1950-12-20', program:'TCM', risk:'Moderate', status:'Pending', cm:'Lisa Wang, NP', phone:'(555) 890-1234', condition:'Hip Replacement Recovery', gender:'Female', address:'167 Walnut Way, Brookfield' },
+  { id:'M-1008', name:'George Anderson', dob:'1947-06-18', program:'CM', risk:'High', status:'Active', cm:'Michael Okafor, LCSW', phone:'(555) 901-2345', condition:'Multiple Sclerosis', gender:'Male', address:'723 Spruce Blvd, Oakdale' },
+  { id:'M-1009', name:'Susan Taylor', dob:'1962-02-14', program:'BH', risk:'Low', status:'Discharged', cm:'Rebecca Perez, RN', phone:'(555) 012-3456', condition:'Anxiety Disorder', gender:'Female', address:'58 Ash St, Maplewood' },
+  { id:'M-1010', name:'Edward Wilson', dob:'1953-08-25', program:'CCM', risk:'Moderate', status:'Active', cm:'Lisa Wang, NP', phone:'(555) 123-4567', condition:'Hypertension, Asthma', gender:'Male', address:'390 Poplar Dr, Cedarville' },
+  { id:'M-1011', name:'Nancy Moore', dob:'1949-10-03', program:'CM', risk:'High', status:'Active', cm:'Dr. Sarah Jensen', phone:'(555) 234-8901', condition:'CHF, Atrial Fibrillation', gender:'Female', address:'115 Cypress Ave, Pinewood' },
+  { id:'M-1012', name:'Frank Jackson', dob:'1956-05-17', program:'TCM', risk:'Low', status:'Pending', cm:'Rebecca Perez, RN', phone:'(555) 345-9012', condition:'Knee Surgery Recovery', gender:'Male', address:'832 Redwood Pl, Willowbrook' },
+];
+
+const carePlans = [
+  { id:'CP-001', member:'Margaret Thompson', mid:'M-1001', status:'Active', progress:65, goals:5, completed:3, nextReview:'2025-02-15', conditions:['CHF','Diabetes T2'], interventions:['Daily weight monitoring','Medication reconciliation','Dietary counseling','Exercise program'] },
+  { id:'CP-002', member:'James Rodriguez', mid:'M-1002', status:'Active', progress:45, goals:6, completed:2, nextReview:'2025-02-10', conditions:['COPD','Hypertension'], interventions:['Inhaler technique training','Smoking cessation','Pulmonary rehab','BP monitoring'] },
+  { id:'CP-003', member:'Dorothy Williams', mid:'M-1003', status:'Active', progress:80, goals:4, completed:3, nextReview:'2025-02-20', conditions:['Post-Surgical'], interventions:['Wound care','PT referrals','Pain management','Follow-up scheduling'] },
+  { id:'CP-004', member:'Robert Chen', mid:'M-1004', status:'Active', progress:55, goals:4, completed:2, nextReview:'2025-02-12', conditions:['Depression','Anxiety'], interventions:['CBT referrals','Medication management','Crisis planning','Support groups'] },
+  { id:'CP-005', member:'Patricia Davis', mid:'M-1005', status:'Draft', progress:20, goals:6, completed:1, nextReview:'2025-02-25', conditions:['CHF','CKD Stage 3'], interventions:['Nephrology referral','Dietary modifications','Fluid management','Lab monitoring'] },
+  { id:'CP-006', member:'George Anderson', mid:'M-1008', status:'Active', progress:70, goals:5, completed:3, nextReview:'2025-02-08', conditions:['Multiple Sclerosis'], interventions:['Neurology follow-up','PT/OT coordination','Medication review','Home safety eval'] },
+];
+
+const assessments = [
+  { member:'Margaret Thompson', mid:'M-1001', type:'HRA', assigned:'2025-01-20', due:'2025-02-03', status:'Completed', score:82 },
+  { member:'James Rodriguez', mid:'M-1002', type:'CPRS', assigned:'2025-01-25', due:'2025-02-08', status:'Pending', score:null },
+  { member:'Helen Martinez', mid:'M-1007', type:'HRA', assigned:'2025-01-10', due:'2025-01-24', status:'Overdue', score:null },
+  { member:'Robert Chen', mid:'M-1004', type:'PHQ-9', assigned:'2025-01-28', due:'2025-02-11', status:'Pending', score:null },
+  { member:'Patricia Davis', mid:'M-1005', type:'HRA', assigned:'2025-01-15', due:'2025-01-29', status:'Completed', score:71 },
+  { member:'Frank Jackson', mid:'M-1012', type:'FIM', assigned:'2025-01-30', due:'2025-02-13', status:'Pending', score:null },
+  { member:'Edward Wilson', mid:'M-1010', type:'CPRS', assigned:'2025-01-05', due:'2025-01-19', status:'Completed', score:88 },
+  { member:'Nancy Moore', mid:'M-1011', type:'HRA', assigned:'2025-01-22', due:'2025-02-05', status:'Overdue', score:null },
+];
+
+const tasks = [
+  { id:'T-001', title:'Complete intake assessment for Helen Martinez', member:'Helen Martinez', mid:'M-1007', priority:'High', status:'todo', due:'2025-02-01', assignee:'Dr. Sarah Jensen' },
+  { id:'T-002', title:'Schedule cardiology follow-up for Margaret', member:'Margaret Thompson', mid:'M-1001', priority:'High', status:'inprogress', due:'2025-01-31', assignee:'Rebecca Perez, RN' },
+  { id:'T-003', title:'Submit prior auth for PT sessions', member:'Dorothy Williams', mid:'M-1003', priority:'Medium', status:'todo', due:'2025-02-03', assignee:'Dr. Sarah Jensen' },
+  { id:'T-004', title:'Update care plan for James Rodriguez', member:'James Rodriguez', mid:'M-1002', priority:'Medium', status:'inprogress', due:'2025-02-05', assignee:'Rebecca Perez, RN' },
+  { id:'T-005', title:'Coordinate discharge planning for Susan Taylor', member:'Susan Taylor', mid:'M-1009', priority:'Low', status:'completed', due:'2025-01-28', assignee:'Michael Okafor, LCSW' },
+  { id:'T-006', title:'Order lab work for Patricia Davis', member:'Patricia Davis', mid:'M-1005', priority:'High', status:'todo', due:'2025-02-01', assignee:'Lisa Wang, NP' },
+  { id:'T-007', title:'Complete PHQ-9 screening for Robert Chen', member:'Robert Chen', mid:'M-1004', priority:'Medium', status:'todo', due:'2025-02-04', assignee:'Michael Okafor, LCSW' },
+  { id:'T-008', title:'Medication reconciliation for George Anderson', member:'George Anderson', mid:'M-1008', priority:'High', status:'inprogress', due:'2025-01-31', assignee:'Lisa Wang, NP' },
+  { id:'T-009', title:'Send care summary to PCP for Edward Wilson', member:'Edward Wilson', mid:'M-1010', priority:'Low', status:'completed', due:'2025-01-27', assignee:'Dr. Sarah Jensen' },
+  { id:'T-010', title:'Arrange home safety evaluation', member:'Nancy Moore', mid:'M-1011', priority:'Medium', status:'todo', due:'2025-02-06', assignee:'Rebecca Perez, RN' },
+];
+
+const appointments = [
+  { id:'A-001', member:'Margaret Thompson', type:'Follow-up', time:'09:00 AM', duration:'30 min', provider:'Dr. Sarah Jensen', date:'2025-01-31', status:'Confirmed' },
+  { id:'A-002', member:'James Rodriguez', type:'Pulmonary Rehab', time:'10:30 AM', duration:'60 min', provider:'Rebecca Perez, RN', date:'2025-01-31', status:'Confirmed' },
+  { id:'A-003', member:'Robert Chen', type:'Therapy Session', time:'01:00 PM', duration:'45 min', provider:'Michael Okafor, LCSW', date:'2025-01-31', status:'Pending' },
+  { id:'A-004', member:'Dorothy Williams', type:'PT Evaluation', time:'02:30 PM', duration:'60 min', provider:'Lisa Wang, NP', date:'2025-02-03', status:'Confirmed' },
+  { id:'A-005', member:'Patricia Davis', type:'Lab Work', time:'08:30 AM', duration:'15 min', provider:'Dr. Sarah Jensen', date:'2025-02-04', status:'Pending' },
+  { id:'A-006', member:'George Anderson', type:'Neurology Follow-up', time:'11:00 AM', duration:'45 min', provider:'Rebecca Perez, RN', date:'2025-02-05', status:'Confirmed' },
+  { id:'A-007', member:'Nancy Moore', type:'Home Safety Eval', time:'03:00 PM', duration:'90 min', provider:'Michael Okafor, LCSW', date:'2025-02-06', status:'Pending' },
+];
+
+const conversations = [
+  { id:1, name:'Rebecca Perez, RN', initials:'RP', color:'var(--info)', lastMsg:'Margaret\'s cardiology appt is confirmed for Friday.', time:'10m ago', unread:2, online:true },
+  { id:2, name:'Michael Okafor, LCSW', initials:'MO', color:'var(--warning)', lastMsg:'Robert Chen\'s PHQ-9 score needs review.', time:'1h ago', unread:1, online:true },
+  { id:3, name:'Lisa Wang, NP', initials:'LW', color:'var(--accent)', lastMsg:'Lab results for Patricia Davis are in.', time:'3h ago', unread:0, online:false },
+  { id:4, name:'Dr. Mark Stevens', initials:'MS', color:'var(--danger)', lastMsg:'Discharge summary attached for Susan Taylor.', time:'Yesterday', unread:0, online:false },
+  { id:5, name:'Care Coordination Team', initials:'CT', color:'var(--text-muted)', lastMsg:'Weekly huddle notes have been shared.', time:'Yesterday', unread:0, online:false },
+];
+
+const chatHistory = [
+  { from:'them', text:'Hi Dr. Jensen, I wanted to update you on Margaret Thompson\'s condition.', time:'9:15 AM' },
+  { from:'them', text:'Her weight has been stable for the past 3 days, which is a good sign. BP is 128/82 this morning.', time:'9:16 AM' },
+  { from:'me', text:'That\'s encouraging. Has she been following the sodium restriction diet?', time:'9:20 AM' },
+  { from:'them', text:'Mostly yes, but she mentioned some difficulty with meal prep. I referred her to the dietary counselor.', time:'9:22 AM' },
+  { from:'me', text:'Good thinking. Let\'s also make sure the home health aide is helping with groceries.', time:'9:25 AM' },
+  { from:'them', text:'Already on it. Margaret\'s cardiology appt is confirmed for Friday.', time:'9:30 AM' },
+];
+
+const teamMembers = [
+  { name:'Dr. Sarah Jensen', role:'Care Manager (Lead)', initials:'SJ', color:'var(--accent)', members:5, status:'Active', email:'s.jensen@carenexus.com', phone:'(555) 100-0001' },
+  { name:'Rebecca Perez, RN', role:'Registered Nurse', initials:'RP', color:'var(--info)', members:4, status:'Active', email:'r.perez@carenexus.com', phone:'(555) 100-0002' },
+  { name:'Michael Okafor, LCSW', role:'Clinical Social Worker', initials:'MO', color:'var(--warning)', members:3, status:'Active', email:'m.okafor@carenexus.com', phone:'(555) 100-0003' },
+  { name:'Lisa Wang, NP', role:'Nurse Practitioner', initials:'LW', color:'var(--danger)', members:3, status:'Active', email:'l.wang@carenexus.com', phone:'(555) 100-0004' },
+  { name:'Dr. Mark Stevens', role:'Medical Director', initials:'MS', color:'var(--text-muted)', members:0, status:'Active', email:'m.stevens@carenexus.com', phone:'(555) 100-0005' },
+  { name:'Angela Brooks', role:'Care Coordinator', initials:'AB', color:'var(--accent)', members:2, status:'On Leave', email:'a.brooks@carenexus.com', phone:'(555) 100-0006' },
+];
+
+const authorizations = [
+  { id:'AUTH-2501', member:'Margaret Thompson', service:'Cardiology Consultation', provider:'Springfield Heart Center', submitted:'2025-01-20', expiration:'2025-03-20', status:'Approved' },
+  { id:'AUTH-2502', member:'Dorothy Williams', service:'Physical Therapy (12 sessions)', provider:'Lakewood PT Associates', submitted:'2025-01-25', expiration:'2025-04-25', status:'Pending' },
+  { id:'AUTH-2503', member:'James Rodriguez', service:'Pulmonary Rehabilitation', provider:'Riverside Pulmonary Center', submitted:'2025-01-22', expiration:'2025-04-22', status:'Approved' },
+  { id:'AUTH-2504', member:'Robert Chen', service:'Outpatient Behavioral Health', provider:'Fairview Counseling Center', submitted:'2025-01-28', expiration:'2025-03-28', status:'Pending' },
+  { id:'AUTH-2505', member:'Patricia Davis', service:'Nephrology Consultation', provider:'Greenville Kidney Care', submitted:'2025-01-15', expiration:'2025-03-15', status:'Denied' },
+  { id:'AUTH-2506', member:'George Anderson', service:'Home Health Aide (40hrs/wk)', provider:'Oakdale Home Health', submitted:'2025-01-18', expiration:'2025-04-18', status:'Approved' },
+  { id:'AUTH-2507', member:'Nancy Moore', service:'Home Safety Evaluation', provider:'Pinewood OT Services', submitted:'2025-01-30', expiration:'2025-02-28', status:'Pending' },
+];
+
+const documents = [
+  { name:'HRA Assessment - Thompson', member:'Margaret Thompson', category:'Clinical Notes', uploadedBy:'Dr. Sarah Jensen', date:'2025-01-28', size:'245 KB', icon:'fa-file-medical', color:'var(--accent)' },
+  { name:'Lab Results - Davis Q4', member:'Patricia Davis', category:'Lab Results', uploadedBy:'Lisa Wang, NP', date:'2025-01-27', size:'128 KB', icon:'fa-flask', color:'var(--info)' },
+  { name:'Consent for Treatment - Rodriguez', member:'James Rodriguez', category:'Consent Forms', uploadedBy:'Rebecca Perez, RN', date:'2025-01-26', size:'85 KB', icon:'fa-file-signature', color:'var(--warning)' },
+  { name:'Discharge Summary - Taylor', member:'Susan Taylor', category:'Clinical Notes', uploadedBy:'Dr. Mark Stevens', date:'2025-01-25', size:'312 KB', icon:'fa-file-medical', color:'var(--accent)' },
+  { name:'Insurance Correspondence - Chen', member:'Robert Chen', category:'Correspondence', uploadedBy:'Michael Okafor, LCSW', date:'2025-01-24', size:'67 KB', icon:'fa-envelope', color:'var(--danger)' },
+  { name:'Care Plan Review Notes - Anderson', member:'George Anderson', category:'Clinical Notes', uploadedBy:'Dr. Sarah Jensen', date:'2025-01-23', size:'198 KB', icon:'fa-file-medical', color:'var(--accent)' },
+  { name:'PT Evaluation Report - Williams', member:'Dorothy Williams', category:'Clinical Notes', uploadedBy:'Lisa Wang, NP', date:'2025-01-22', size:'156 KB', icon:'fa-file-medical', color:'var(--accent)' },
+];
+
+const notifications = [
+  { icon:'fa-exclamation-triangle', color:'var(--danger)', title:'Care gap identified', desc:'Nancy Moore missed HRA assessment deadline', time:'5m ago', read:false },
+  { icon:'fa-calendar-check', color:'var(--accent)', title:'Appointment confirmed', desc:'Margaret Thompson - Cardiology, Feb 1', time:'15m ago', read:false },
+  { icon:'fa-shield-alt', color:'var(--warning)', title:'Authorization pending', desc:'PT sessions for Dorothy Williams need review', time:'1h ago', read:false },
+  { icon:'fa-comment-dots', color:'var(--info)', title:'New message', desc:'Rebecca Perez sent you a message', time:'2h ago', read:false },
+  { icon:'fa-tasks', color:'var(--warning)', title:'Task overdue', desc:'HRA assessment for Helen Martinez past due', time:'3h ago', read:false },
+  { icon:'fa-file-medical', color:'var(--accent)', title:'Assessment completed', desc:'Patricia Davis HRA score: 71', time:'5h ago', read:false },
+  { icon:'fa-check-circle', color:'var(--accent)', title:'Care plan updated', desc:'George Anderson care plan reviewed', time:'Yesterday', read:false },
+];
+
+const complianceItems = [
+  { name:'HEDIS Measures', progress:78, status:'On Track', icon:'fa-chart-pie', color:'var(--accent)' },
+  { name:'STAR Ratings', progress:85, status:'On Track', icon:'fa-star', color:'var(--warning)' },
+  { name:'CMS Face-to-Face', progress:92, status:'Compliant', icon:'fa-user-check', color:'var(--info)' },
+  { name:'State Licensing', progress:100, status:'Compliant', icon:'fa-certificate', color:'var(--accent)' },
+  { name:'HIPAA Training', progress:65, status:'At Risk', icon:'fa-lock', color:'var(--danger)' },
+  { name:'Documentation Audits', progress:88, status:'On Track', icon:'fa-clipboard-check', color:'var(--info)' },
+];
+
+const complianceTimeline = [
+  { date:'Jan 30, 2025', event:'Quarterly HEDIS data submission', status:'Completed' },
+  { date:'Feb 15, 2025', event:'STAR ratings interim review', status:'Upcoming' },
+  { date:'Feb 28, 2025', event:'HIPAA training deadline for 3 staff', status:'At Risk' },
+  { date:'Mar 15, 2025', event:'State compliance audit', status:'Upcoming' },
+  { date:'Mar 31, 2025', event:'Q1 documentation audit close', status:'Upcoming' },
+  { date:'Apr 15, 2025', event:'Annual licensing renewal', status:'Upcoming' },
+];
+
+const reports = [
+  { name:'Monthly Enrollment Report', desc:'Member enrollment, discharges, and net changes', icon:'fa-users', color:'var(--accent)', lastRun:'Jan 28, 2025' },
+  { name:'Care Gap Analysis', desc:'Identified gaps in care by HEDIS measure', icon:'fa-search', color:'var(--danger)', lastRun:'Jan 25, 2025' },
+  { name:'Utilization Summary', desc:'ER visits, inpatient days, and readmission rates', icon:'fa-hospital', color:'var(--warning)', lastRun:'Jan 30, 2025' },
+  { name:'Task Completion Report', desc:'Care coordination task completion and aging', icon:'fa-tasks', color:'var(--info)', lastRun:'Jan 29, 2025' },
+  { name:'Authorization Turnaround', desc:'Auth request processing times and outcomes', icon:'fa-shield-alt', color:'var(--accent)', lastRun:'Jan 27, 2025' },
+  { name:'Outcome Metrics Dashboard', desc:'Key outcome measures vs. benchmarks', icon:'fa-chart-line', color:'var(--warning)', lastRun:'Jan 30, 2025' },
+  { name:'Staff Productivity Report', desc:'Caseload, activities, and efficiency metrics', icon:'fa-user-clock', color:'var(--info)', lastRun:'Jan 26, 2025' },
+  { name:'Financial Summary', desc:'Cost of care, savings, and ROI analysis', icon:'fa-dollar-sign', color:'var(--accent)', lastRun:'Jan 28, 2025' },
+];
+
+// ===================== NAVIGATION =====================
+
+let currentPage = 'dashboard';
+let chartsInitialized = false;
+let currentCalMonth = new Date().getMonth();
+let currentCalYear = new Date().getFullYear();
+let selectedCalDate = null;
+let memberPage = 1;
+const membersPerPage = 8;
+
+function navigateTo(page) {
+  currentPage = page;
+  document.querySelectorAll('.page-view').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const pageEl = document.getElementById('page-' + page);
+  const navEl = document.querySelector(`.nav-item[data-page="${page}"]`);
+  if (pageEl) pageEl.classList.add('active');
+  if (navEl) navEl.classList.add('active');
+  document.getElementById('mainContent').scrollTop = 0;
+
+  // Initialize page-specific content
+  if (page === 'dashboard' && !chartsInitialized) { initDashboardCharts(); chartsInitialized = true; }
+  if (page === 'members') renderMembers();
+  if (page === 'careplans') renderCarePlans();
+  if (page === 'assessments') renderAssessments();
+  if (page === 'tasks') renderTasks();
+  if (page === 'scheduling') renderCalendar();
+  if (page === 'messages') renderMessages();
+  if (page === 'careteam') renderCareTeam();
+  if (page === 'authorizations') renderAuthorizations();
+  if (page === 'documents') renderDocuments();
+  if (page === 'outcomes') initOutcomeCharts();
+  if (page === 'compliance') renderCompliance();
+  if (page === 'reports') renderReports();
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('collapsed');
+}
+
+// ===================== TOAST =====================
+
+function showToast(message, type = 'success') {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  const icons = { success: 'fa-check-circle', error: 'fa-times-circle', warning: 'fa-exclamation-triangle', info: 'fa-info-circle' };
+  const colors = { success: 'var(--accent)', error: 'var(--danger)', warning: 'var(--warning)', info: 'var(--info)' };
+  toast.innerHTML = `<i class="fas ${icons[type]}" style="color:${colors[type]};font-size:1rem;"></i><span>${message}</span>`;
+  container.appendChild(toast);
+  setTimeout(() => { toast.classList.add('removing'); setTimeout(() => toast.remove(), 300); }, 3000);
+}
+
+// ===================== MODAL =====================
+
+function openModal(html) {
+  document.getElementById('modalBox').innerHTML = html;
+  document.getElementById('modalOverlay').classList.add('show');
+}
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('show');
+}
+
+// ===================== NOTIFICATIONS =====================
+
+function toggleNotifications() {
+  document.getElementById('notifDropdown').classList.toggle('show');
+}
+function renderNotifications() {
+  const list = document.getElementById('notifList');
+  list.innerHTML = notifications.map(n => `
+    <div style="padding:0.75rem 1.25rem;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:flex-start;${!n.read ? 'background:rgba(15,212,164,0.03);' : ''}" >
+      <div style="width:32px;height:32px;border-radius:8px;background:${n.color}15;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <i class="fas ${n.icon}" style="color:${n.color};font-size:0.8rem;"></i>
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:0.82rem;font-weight:600;margin-bottom:2px;">${n.title}</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);line-height:1.4;">${n.desc}</div>
+        <div style="font-size:0.68rem;color:var(--text-muted);margin-top:4px;">${n.time}</div>
+      </div>
+      ${!n.read ? '<div style="width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:6px;"></div>' : ''}
+    </div>
+  `).join('');
+}
+function clearNotifications() {
+  notifications.forEach(n => n.read = true);
+  document.getElementById('notifCount').style.display = 'none';
+  renderNotifications();
+  showToast('All notifications marked as read', 'success');
+}
+
+// Close dropdown on outside click
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.notif-dropdown') && !e.target.closest('[aria-label="Notifications"]')) {
+    document.getElementById('notifDropdown').classList.remove('show');
+  }
+});
+
+// ===================== DASHBOARD =====================
+
+function initDashboardCharts() {
+  // Enrollment chart
+  const enrollCtx = document.getElementById('enrollChart').getContext('2d');
+  window.enrollChart = new Chart(enrollCtx, {
+    type: 'line',
+    data: {
+      labels: ['Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan'],
+      datasets: [{
+        label: 'New Enrollments',
+        data: [18, 24, 32, 28, 35, 42],
+        borderColor: '#0fd4a4',
+        backgroundColor: 'rgba(15,212,164,0.08)',
+        fill: true,
+        tension: 0.4,
+        pointRadius: 4,
+        pointBackgroundColor: '#0fd4a4',
+        pointBorderColor: '#0c1117',
+        pointBorderWidth: 2,
+      }, {
+        label: 'Discharges',
+        data: [5, 8, 6, 10, 7, 9],
+        borderColor: '#f4516c',
+        backgroundColor: 'rgba(244,81,108,0.05)',
+        fill: true,
+        tension: 0.4,
+        pointRadius: 4,
+        pointBackgroundColor: '#f4516c',
+        pointBorderColor: '#0c1117',
+        pointBorderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#8a9bb5', font: { size: 11, family: 'DM Sans' }, usePointStyle: true, pointStyle: 'circle', padding: 20 } } },
+      scales: {
+        x: { grid: { color: 'rgba(37,48,64,0.5)' }, ticks: { color: '#5a6d85', font: { size: 11, family: 'DM Sans' } } },
+        y: { grid: { color: 'rgba(37,48,64,0.5)' }, ticks: { color: '#5a6d85', font: { size: 11, family: 'DM Sans' } }, beginAtZero: true }
+      }
+    }
+  });
+
+  // Risk chart
+  const riskCtx = document.getElementById('riskChart').getContext('2d');
+  new Chart(riskCtx, {
+    type: 'doughnut',
+    data: {
+      labels: ['High Risk', 'Moderate Risk', 'Low Risk'],
+      datasets: [{
+        data: [86, 98, 64],
+        backgroundColor: ['#f4516c', '#f5a623', '#0fd4a4'],
+        borderColor: '#1a2332',
+        borderWidth: 3,
+        hoverOffset: 8,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '68%',
+      plugins: {
+        legend: { position: 'bottom', labels: { color: '#8a9bb5', font: { size: 11, family: 'DM Sans' }, usePointStyle: true, pointStyle: 'circle', padding: 16 } }
+      }
+    }
+  });
+
+  // Activity
+  renderDashActivity();
+  renderDashUpcoming();
+}
+
+function updateEnrollChart(range, btn) {
+  document.querySelectorAll('.chart-range').forEach(b => b.classList.remove('active-range'));
+  btn.classList.add('active-range');
+  btn.style.borderColor = 'var(--accent)';
+  btn.style.color = 'var(--accent)';
+  document.querySelectorAll('.chart-range:not(.active-range)').forEach(b => { b.style.borderColor = ''; b.style.color = ''; });
+  if (range === '1y') {
+    window.enrollChart.data.labels = ['Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan'];
+    window.enrollChart.data.datasets[0].data = [12,15,19,22,20,16,18,24,32,28,35,42];
+    window.enrollChart.data.datasets[1].data = [3,4,5,6,4,5,5,8,6,10,7,9];
+  } else {
+    window.enrollChart.data.labels = ['Aug','Sep','Oct','Nov','Dec','Jan'];
+    window.enrollChart.data.datasets[0].data = [18,24,32,28,35,42];
+    window.enrollChart.data.datasets[1].data = [5,8,6,10,7,9];
+  }
+  window.enrollChart.update();
+}
+
+function renderDashActivity() {
+  const activities = [
+    { icon:'fa-user-plus', color:'var(--accent)', text:'Helen Martinez enrolled in TCM program', time:'10 min ago' },
+    { icon:'fa-clipboard-check', color:'var(--info)', text:'Patricia Davis HRA assessment completed (Score: 71)', time:'2 hours ago' },
+    { icon:'fa-shield-alt', color:'var(--warning)', text:'Prior auth submitted for Dorothy Williams PT', time:'3 hours ago' },
+    { icon:'fa-comment', color:'var(--accent)', text:'Rebecca Perez updated Margaret Thompson notes', time:'5 hours ago' },
+    { icon:'fa-sign-out-alt', color:'var(--danger)', text:'Susan Taylor discharged from care management', time:'Yesterday' },
+  ];
+  document.getElementById('dashActivity').innerHTML = activities.map(a => `
+    <div style="display:flex;gap:10px;align-items:flex-start;padding:0.6rem 0;border-bottom:1px solid var(--border);">
+      <div style="width:30px;height:30px;border-radius:8px;background:${a.color}15;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <i class="fas ${a.icon}" style="color:${a.color};font-size:0.72rem;"></i>
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:0.82rem;line-height:1.4;">${a.text}</div>
+        <div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">${a.time}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderDashUpcoming() {
+  const todayAppts = appointments.filter(a => a.date === '2025-01-31');
+  document.getElementById('dashUpcoming').innerHTML = todayAppts.length ? todayAppts.map(a => `
+    <div style="display:flex;gap:12px;align-items:center;padding:0.65rem 0;border-bottom:1px solid var(--border);">
+      <div style="text-align:center;min-width:50px;">
+        <div style="font-size:0.82rem;font-weight:700;color:var(--accent);">${a.time}</div>
+        <div style="font-size:0.68rem;color:var(--text-muted);">${a.duration}</div>
+      </div>
+      <div style="flex:1;">
+        <div style="font-size:0.82rem;font-weight:600;">${a.member}</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);">${a.type}</div>
+      </div>
+      <span class="badge badge-${a.status === 'Confirmed' ? 'accent' : 'warning'}">${a.status}</span>
+    </div>
+  `).join('') : '<div style="text-align:center;padding:2rem;color:var(--text-muted);font-size:0.85rem;">No appointments today</div>';
+}
+
+// ===================== MEMBERS =====================
+
+function renderMembers() {
+  const search = (document.getElementById('memberSearch')?.value || '').toLowerCase();
+  const statusF = document.getElementById('memberStatusFilter')?.value || '';
+  const riskF = document.getElementById('memberRiskFilter')?.value || '';
+  const progF = document.getElementById('memberProgramFilter')?.value || '';
+
+  let filtered = members.filter(m => {
+    if (search && !m.name.toLowerCase().includes(search) && !m.id.toLowerCase().includes(search) && !m.condition.toLowerCase().includes(search)) return false;
+    if (statusF && m.status !== statusF) return false;
+    if (riskF && m.risk !== riskF) return false;
+    if (progF && m.program !== progF) return false;
+    return true;
+  });
+
+  const total = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(total / membersPerPage));
+  if (memberPage > totalPages) memberPage = totalPages;
+  const start = (memberPage - 1) * membersPerPage;
+  const paged = filtered.slice(start, start + membersPerPage);
+
+  const riskBadge = { High: 'danger', Moderate: 'warning', Low: 'accent' };
+  const statusBadge = { Active: 'accent', Pending: 'warning', Discharged: 'info' };
+  const progLabel = { CM: 'Case Mgmt', CCM: 'Chronic Care', TCM: 'Transitional', BH: 'Behavioral' };
+
+  document.getElementById('memberTableBody').innerHTML = paged.map(m => `
+    <tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="avatar" style="background:${m.gender==='Female' ? 'rgba(244,81,108,0.12);color:var(--danger)' : 'rgba(77,166,255,0.12);color:var(--info)'};width:32px;height:32px;font-size:0.7rem;">${m.name.split(' ').map(n=>n[0]).join('')}</div>
+          <div>
+            <div style="font-weight:600;color:var(--text-primary);font-size:0.84rem;">${m.name}</div>
+            <div style="font-size:0.72rem;color:var(--text-muted);">${m.condition}</div>
+          </div>
+        </div>
+      </td>
+      <td style="font-family:monospace;font-size:0.8rem;">${m.id}</td>
+      <td>${m.dob}</td>
+      <td><span class="badge badge-info">${progLabel[m.program] || m.program}</span></td>
+      <td><span class="badge badge-${riskBadge[m.risk]}">${m.risk} Risk</span></td>
+      <td><span class="badge badge-${statusBadge[m.status]}">${m.status}</span></td>
+      <td style="font-size:0.82rem;">${m.cm}</td>
+      <td>
+        <div style="display:flex;gap:4px;">
+          <button class="btn-icon" style="width:28px;height:28px;font-size:0.7rem;" title="View" onclick="openMemberDetail('${m.id}')"><i class="fas fa-eye"></i></button>
+          <button class="btn-icon" style="width:28px;height:28px;font-size:0.7rem;" title="Edit" onclick="showToast('Edit mode for ${m.name}','info')"><i class="fas fa-pen"></i></button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+
+  document.getElementById('memberCount').textContent = `Showing ${start+1}-${Math.min(start+membersPerPage, total)} of ${total} members`;
+
+  // Pagination
+  let pagHTML = '';
+  for (let i = 1; i <= totalPages; i++) {
+    pagHTML += `<button class="btn-icon" style="width:30px;height:30px;font-size:0.75rem;${i===memberPage?'background:var(--accent);color:var(--bg-primary);border-color:var(--accent);':''}" onclick="memberPage=${i};renderMembers()">${i}</button>`;
+  }
+  document.getElementById('memberPagination').innerHTML = pagHTML;
+}
+function filterMembers() { memberPage = 1; renderMembers(); }
+
+function openMemberDetail(mid) {
+  const m = members.find(x => x.id === mid);
+  if (!m) return;
+  const cp = carePlans.find(x => x.mid === mid);
+  const planHTML = cp ? `
+    <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border);">
+      <div style="font-weight:700;font-size:0.9rem;margin-bottom:0.75rem;">Active Care Plan: ${cp.id}</div>
+      <div style="margin-bottom:0.75rem;">
+        <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:4px;">
+          <span style="color:var(--text-secondary);">Progress</span><span style="color:var(--accent);font-weight:600;">${cp.progress}%</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${cp.progress}%;background:var(--accent);"></div></div>
+      </div>
+      <div style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:4px;">Goals: ${cp.completed}/${cp.goals} completed</div>
+      <div style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:8px;">Next Review: ${cp.nextReview}</div>
+      <div style="font-size:0.78rem;color:var(--text-muted);font-weight:600;margin-bottom:4px;">INTERVENTIONS</div>
+      ${cp.interventions.map(i => `<div style="font-size:0.8rem;color:var(--text-secondary);padding:3px 0;"><i class="fas fa-chevron-right" style="font-size:0.55rem;color:var(--accent);margin-right:6px;"></i>${i}</div>`).join('')}
+    </div>
+  ` : '<div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border);font-size:0.85rem;color:var(--text-muted);">No active care plan</div>';
+
+  openModal(`
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.25rem;">
+      <div style="display:flex;gap:12px;align-items:center;">
+        <div class="avatar" style="width:48px;height:48px;font-size:1rem;background:${m.gender==='Female' ? 'rgba(244,81,108,0.12);color:var(--danger)' : 'rgba(77,166,255,0.12);color:var(--info)'};">${m.name.split(' ').map(n=>n[0]).join('')}</div>
+        <div>
+          <div style="font-size:1.1rem;font-weight:700;">${m.name}</div>
+          <div style="font-size:0.8rem;color:var(--text-muted);">${m.id} | ${m.gender} | DOB: ${m.dob}</div>
+        </div>
+      </div>
+      <button class="btn-icon" onclick="closeModal()"><i class="fas fa-times"></i></button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:0.5rem;">
+      <div><span class="form-label">Condition</span><div style="font-size:0.85rem;">${m.condition}</div></div>
+      <div><span class="form-label">Program</span><div style="font-size:0.85rem;">${m.program}</div></div>
+      <div><span class="form-label">Risk Level</span><div><span class="badge badge-${m.risk==='High'?'danger':m.risk==='Moderate'?'warning':'accent'}">${m.risk} Risk</span></div></div>
+      <div><span class="form-label">Status</span><div><span class="badge badge-${m.status==='Active'?'accent':m.status==='Pending'?'warning':'info'}">${m.status}</span></div></div>
+      <div><span class="form-label">Phone</span><div style="font-size:0.85rem;">${m.phone}</div></div>
+      <div><span class="form-label">Care Manager</span><div style="font-size:0.85rem;">${m.cm}</div></div>
+    </div>
+    <div><span class="form-label">Address</span><div style="font-size:0.85rem;">${m.address}</div></div>
+    ${planHTML}
+    <div style="display:flex;gap:8px;margin-top:1.25rem;justify-content:flex-end;">
+      <button class="btn-secondary" onclick="closeModal()">Close</button>
+      <button class="btn-primary" onclick="closeModal();navigateTo('careplans')">View Care Plan</button>
+    </div>
+  `);
+}
+
+function openAddMemberModal() {
+  openModal(`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
+      <div style="font-size:1.1rem;font-weight:700;">Add New Member</div>
+      <button class="btn-icon" onclick="closeModal()"><i class="fas fa-times"></i></button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div><label class="form-label">First Name</label><input class="form-input" placeholder="Enter first name" id="newMemFirst"></div>
+      <div><label class="form-label">Last Name</label><input class="form-input" placeholder="Enter last name" id="newMemLast"></div>
+      <div><label class="form-label">Date of Birth</label><input class="form-input" type="date" id="newMemDOB"></div>
+      <div><label class="form-label">Gender</label><select class="form-input" id="newMemGender"><option>Male</option><option>Female</option><option>Other</option></select></div>
+      <div><label class="form-label">Phone</label><input class="form-input" placeholder="(555) 000-0000" id="newMemPhone"></div>
+      <div><label class="form-label">Program</label><select class="form-input" id="newMemProg"><option value="CM">Case Management</option><option value="CCM">Chronic Care Management</option><option value="TCM">Transitional Care</option><option value="BH">Behavioral Health</option></select></div>
+      <div><label class="form-label">Risk Level</label><select class="form-input" id="newMemRisk"><option>Low</option><option>Moderate</option><option>High</option></select></div>
+      <div><label class="form-label">Care Manager</label><select class="form-input" id="newMemCM"><option>Dr. Sarah Jensen</option><option>Rebecca Perez, RN</option><option>Michael Okafor, LCSW</option><option>Lisa Wang, NP</option></select></div>
+      <div style="grid-column:span 2;"><label class="form-label">Primary Condition</label><input class="form-input" placeholder="Enter primary diagnosis/condition" id="newMemCond"></div>
+      <div style="grid-column:span 2;"><label class="form-label">Address</label><input class="form-input" placeholder="Enter full address" id="newMemAddr"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:1.25rem;justify-content:flex-end;">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="addMember()"><i class="fas fa-plus"></i> Add Member</button>
+    </div>
+  `);
+}
+
+function addMember() {
+  const f = document.getElementById('newMemFirst').value.trim();
+  const l = document.getElementById('newMemLast').value.trim();
+  if (!f || !l) { showToast('Please enter first and last name', 'error'); return; }
+  const newId = 'M-' + (1000 + members.length + 1);
+  members.unshift({
+    id: newId, name: `${f} ${l}`, dob: document.getElementById('newMemDOB').value || '1960-01-01',
+    program: document.getElementById('newMemProg').value, risk: document.getElementById('newMemRisk').value,
+    status: 'Pending', cm: document.getElementById('newMemCM').value,
+    phone: document.getElementById('newMemPhone').value || '(555) 000-0000',
+    condition: document.getElementById('newMemCond').value || 'Not specified',
+    gender: document.getElementById('newMemGender').value,
+    address: document.getElementById('newMemAddr').value || 'Not specified'
+  });
+  closeModal();
+  showToast(`Member ${f} ${l} added successfully`, 'success');
+  if (currentPage === 'members') renderMembers();
+}
+
+// ===================== CARE PLANS =====================
+
+function renderCarePlans() {
+  const statusColors = { Active: 'accent', Draft: 'warning', Completed: 'info' };
+  document.getElementById('carePlanGrid').innerHTML = carePlans.map(cp => `
+    <div class="card card-glow" style="cursor:pointer;" onclick="openCarePlanDetail('${cp.id}')">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.75rem;">
+        <div>
+          <div style="font-size:0.72rem;color:var(--text-muted);font-family:monospace;">${cp.id}</div>
+          <div style="font-weight:700;font-size:0.95rem;margin-top:2px;">${cp.member}</div>
+        </div>
+        <span class="badge badge-${statusColors[cp.status]}">${cp.status}</span>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:0.75rem;">
+        ${cp.conditions.map(c => `<span style="font-size:0.7rem;padding:2px 8px;border-radius:4px;background:var(--bg-primary);color:var(--text-secondary);">${c}</span>`).join('')}
+      </div>
+      <div style="margin-bottom:0.5rem;">
+        <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:4px;">
+          <span style="color:var(--text-secondary);">Goals Progress</span>
+          <span style="color:var(--accent);font-weight:600;">${cp.completed}/${cp.goals} (${cp.progress}%)</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${cp.progress}%;background:var(--accent);"></div></div>
+      </div>
+      <div style="font-size:0.75rem;color:var(--text-muted);">Next Review: ${cp.nextReview}</div>
+    </div>
+  `).join('');
+}
+
+function openCarePlanDetail(cpid) {
+  const cp = carePlans.find(x => x.id === cpid);
+  if (!cp) return;
+  openModal(`
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.25rem;">
+      <div>
+        <div style="font-size:0.78rem;color:var(--text-muted);font-family:monospace;">${cp.id}</div>
+        <div style="font-size:1.15rem;font-weight:700;">${cp.member}</div>
+      </div>
+      <button class="btn-icon" onclick="closeModal()"><i class="fas fa-times"></i></button>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:1rem;">
+      ${cp.conditions.map(c => `<span style="font-size:0.78rem;padding:4px 10px;border-radius:6px;background:var(--bg-primary);color:var(--text-secondary);border:1px solid var(--border);">${c}</span>`).join('')}
+    </div>
+    <div style="margin-bottom:1rem;">
+      <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:6px;">
+        <span style="font-weight:600;">Overall Progress</span><span style="color:var(--accent);font-weight:700;">${cp.progress}%</span>
+      </div>
+      <div class="progress-bar" style="height:8px;"><div class="progress-fill" style="width:${cp.progress}%;background:var(--accent);"></div></div>
+    </div>
+    <div style="font-weight:700;font-size:0.85rem;margin-bottom:0.5rem;">Interventions</div>
+    <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:1rem;">
+      ${cp.interventions.map((int, i) => `
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg-primary);border-radius:8px;">
+          <div class="custom-check ${i < cp.completed ? 'checked' : ''}" onclick="this.classList.toggle('checked')"></div>
+          <span style="font-size:0.84rem;${i < cp.completed ? 'text-decoration:line-through;color:var(--text-muted);' : ''}">${int}</span>
+        </div>
+      `).join('')}
+    </div>
+    <div style="font-size:0.82rem;color:var(--text-secondary);">Next Review Date: <strong>${cp.nextReview}</strong></div>
+    <div style="display:flex;gap:8px;margin-top:1.25rem;justify-content:flex-end;">
+      <button class="btn-secondary" onclick="closeModal()">Close</button>
+      <button class="btn-primary" onclick="closeModal();showToast('Care plan updated','success')"><i class="fas fa-save"></i> Save Changes</button>
+    </div>
+  `);
+}
+
+function openCreateCarePlanModal() {
+  openModal(`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
+      <div style="font-size:1.1rem;font-weight:700;">Create Care Plan</div>
+      <button class="btn-icon" onclick="closeModal()"><i class="fas fa-times"></i></button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div><label class="form-label">Select Member</label><select class="form-input" id="cpMember">${members.filter(m=>m.status!=='Discharged').map(m=>`<option value="${m.id}">${m.name} (${m.id})</option>`).join('')}</select></div>
+      <div><label class="form-label">Conditions (comma-separated)</label><input class="form-input" placeholder="e.g. CHF, Diabetes" id="cpConditions"></div>
+      <div><label class="form-label">Number of Goals</label><input class="form-input" type="number" value="4" min="1" max="10" id="cpGoals"></div>
+      <div><label class="form-label">Next Review Date</label><input class="form-input" type="date" id="cpReview"></div>
+      <div><label class="form-label">Interventions (one per line)</label><textarea class="form-input" placeholder="Enter each intervention on a new line" id="cpInterventions">Medication reconciliation\nDietary counseling\nFollow-up scheduling\nCare coordination</textarea></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:1.25rem;justify-content:flex-end;">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="createCarePlan()"><i class="fas fa-plus"></i> Create Plan</button>
+    </div>
+  `);
+}
+
+function createCarePlan() {
+  const mid = document.getElementById('cpMember').value;
+  const mem = members.find(m => m.id === mid);
+  const interventions = document.getElementById('cpInterventions').value.split('\n').filter(l => l.trim());
+  const newCP = {
+    id: 'CP-' + String(carePlans.length + 1).padStart(3, '0'),
+    member: mem.name, mid, status: 'Draft', progress: 0,
+    goals: parseInt(document.getElementById('cpGoals').value) || 4,
+    completed: 0,
+    nextReview: document.getElementById('cpReview').value || '2025-03-01',
+    conditions: document.getElementById('cpConditions').value.split(',').map(c => c.trim()).filter(c => c),
+    interventions: interventions.length ? interventions : ['TBD']
+  };
+  carePlans.push(newCP);
+  closeModal();
+  showToast(`Care plan ${newCP.id} created for ${mem.name}`, 'success');
+  renderCarePlans();
+}
+
+// ===================== ASSESSMENTS =====================
+
+let assessFilter = 'all';
+function switchAssessTab(filter, el) {
+  assessFilter = filter;
+  document.querySelectorAll('#assessTabBar .tab-item').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderAssessments();
+}
+
+function renderAssessments() {
+  let filtered = assessments;
+  if (assessFilter !== 'all') filtered = assessments.filter(a => a.status.toLowerCase() === assessFilter);
+
+  const statusBadge = { Completed: 'accent', Pending: 'warning', Overdue: 'danger' };
+  document.getElementById('assessTableBody').innerHTML = filtered.map(a => `
+    <tr>
+      <td style="font-weight:600;color:var(--text-primary);">${a.member}</td>
+      <td><span class="badge badge-info">${a.type}</span></td>
+      <td>${a.assigned}</td>
+      <td>${a.due}</td>
+      <td><span class="badge badge-${statusBadge[a.status]}">${a.status}</span></td>
+      <td>${a.score !== null ? `<span style="font-weight:700;color:${a.score >= 80 ? 'var(--accent)' : a.score >= 60 ? 'var(--warning)' : 'var(--danger)'};">${a.score}</span>` : '<span style="color:var(--text-muted);">—</span>'}</td>
+      <td>
+        <div style="display:flex;gap:4px;">
+          ${a.status === 'Pending' || a.status === 'Overdue' ? `<button class="btn-icon" style="width:28px;height:28px;font-size:0.7rem;" title="Complete" onclick="completeAssessment('${a.member}','${a.type}')"><i class="fas fa-check"></i></button>` : ''}
+          <button class="btn-icon" style="width:28px;height:28px;font-size:0.7rem;" title="View" onclick="showToast('Viewing ${a.type} for ${a.member}','info')"><i class="fas fa-eye"></i></button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function completeAssessment(member, type) {
+  const a = assessments.find(x => x.member === member && x.type === type);
+  if (a) { a.status = 'Completed'; a.score = Math.floor(Math.random() * 30) + 60; }
+  renderAssessments();
+  showToast(`${type} assessment completed for ${member}`, 'success');
+}
+
+function openNewAssessmentModal() {
+  openModal(`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
+      <div style="font-size:1.1rem;font-weight:700;">New Assessment</div>
+      <button class="btn-icon" onclick="closeModal()"><i class="fas fa-times"></i></button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div><label class="form-label">Member</label><select class="form-input" id="assessMember">${members.map(m => `<option>${m.name}</option>`).join('')}</select></div>
+      <div><label class="form-label">Assessment Type</label><select class="form-input" id="assessType"><option>HRA</option><option>CPRS</option><option>PHQ-9</option><option>GAD-7</option><option>FIM</option><option>Barthel Index</option></select></div>
+      <div><label class="form-label">Due Date</label><input class="form-input" type="date" id="assessDue"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:1.25rem;justify-content:flex-end;">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="createAssessment()"><i class="fas fa-plus"></i> Create Assessment</button>
+    </div>
+  `);
+}
+
+function createAssessment() {
+  const today = new Date().toISOString().slice(0, 10);
+  assessments.unshift({
+    member: document.getElementById('assessMember').value,
+    mid: '', type: document.getElementById('assessType').value,
+    assigned: today, due: document.getElementById('assessDue').value || '2025-02-15',
+    status: 'Pending', score: null
+  });
+  closeModal();
+  showToast('Assessment created successfully', 'success');
+  renderAssessments();
+}
+
+// ===================== TASKS =====================
+
+let taskFilter = 'all';
+function switchTaskTab(filter, el) {
+  taskFilter = filter;
+  document.querySelectorAll('#taskTabBar .tab-item').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderTasks();
+}
+
+function renderTasks() {
+  let filtered = tasks;
+  const today = '2025-01-31';
+  if (taskFilter === 'today') filtered = tasks.filter(t => t.due === today && t.status !== 'completed');
+  if (taskFilter === 'overdue') filtered = tasks.filter(t => t.due < today && t.status !== 'completed');
+  if (taskFilter === 'completed') filtered = tasks.filter(t => t.status === 'completed');
+
+  const todo = filtered.filter(t => t.status === 'todo');
+  const inprogress = filtered.filter(t => t.status === 'inprogress');
+  const completed = filtered.filter(t => t.status === 'completed');
+
+  document.getElementById('todoCount').textContent = todo.length;
+  document.getElementById('inprogressCount').textContent = inprogress.length;
+  document.getElementById('completedCount').textContent = completed.length;
+
+  const priorityColors = { High: 'var(--danger)', Medium: 'var(--warning)', Low: 'var(--text-muted)' };
+  const renderCard = (t) => `
+    <div class="card" style="padding:0.85rem;cursor:grab;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+        <span style="font-size:0.68rem;font-weight:700;color:${priorityColors[t.priority]};text-transform:uppercase;">${t.priority}</span>
+        <div style="display:flex;gap:4px;">
+          ${t.status !== 'completed' ? `<button class="btn-icon" style="width:24px;height:24px;font-size:0.6rem;" onclick="moveTask('${t.id}','forward')" title="Move forward"><i class="fas fa-arrow-right"></i></button>` : ''}
+          <button class="btn-icon" style="width:24px;height:24px;font-size:0.6rem;" onclick="showToast('Task ${t.id} options','info')"><i class="fas fa-ellipsis-v"></i></button>
+        </div>
+      </div>
+      <div style="font-size:0.84rem;font-weight:600;margin-bottom:6px;line-height:1.4;">${t.title}</div>
+      <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:6px;"><i class="fas fa-user" style="font-size:0.6rem;margin-right:4px;"></i>${t.member}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:0.72rem;color:var(--text-muted);"><i class="fas fa-clock" style="font-size:0.6rem;margin-right:4px;"></i>${t.due}</span>
+        <div class="avatar" style="width:22px;height:22px;font-size:0.55rem;background:var(--accent-dim);color:var(--accent);" title="${t.assignee}">${t.assignee.split(' ').map(n=>n[0]).join('')}</div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('todoColumn').innerHTML = todo.map(renderCard).join('');
+  document.getElementById('inprogressColumn').innerHTML = inprogress.map(renderCard).join('');
+  document.getElementById('completedColumn').innerHTML = completed.map(renderCard).join('');
+}
+
+function moveTask(tid, direction) {
+  const t = tasks.find(x => x.id === tid);
+  if (!t) return;
+  if (direction === 'forward') {
+    if (t.status === 'todo') t.status = 'inprogress';
+    else if (t.status === 'inprogress') t.status = 'completed';
+  } else {
+    if (t.status === 'completed') t.status = 'inprogress';
+    else if (t.status === 'inprogress') t.status = 'todo';
+  }
+  renderTasks();
+  showToast(`Task moved to ${t.status === 'completed' ? 'Completed' : t.status === 'inprogress' ? 'In Progress' : 'To Do'}`, 'success');
+}
+
+function openNewTaskModal() {
+  openModal(`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
+      <div style="font-size:1.1rem;font-weight:700;">New Task</div>
+      <button class="btn-icon" onclick="closeModal()"><i class="fas fa-times"></i></button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div><label class="form-label">Task Title</label><input class="form-input" placeholder="Enter task description" id="taskTitle"></div>
+      <div><label class="form-label">Member</label><select class="form-input" id="taskMember">${members.map(m=>`<option>${m.name}</option>`).join('')}</select></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div><label class="form-label">Priority</label><select class="form-input" id="taskPriority"><option>High</option><option selected>Medium</option><option>Low</option></select></div>
+        <div><label class="form-label">Due Date</label><input class="form-input" type="date" id="taskDue"></div>
+      </div>
+      <div><label class="form-label">Assign To</label><select class="form-input" id="taskAssignee"><option>Dr. Sarah Jensen</option><option>Rebecca Perez, RN</option><option>Michael Okafor, LCSW</option><option>Lisa Wang, NP</option></select></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:1.25rem;justify-content:flex-end;">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="createTask()"><i class="fas fa-plus"></i> Create Task</button>
+    </div>
+  `);
+}
+
+function createTask() {
+  const title = document.getElementById('taskTitle').value.trim();
+  if (!title) { showToast('Please enter a task title', 'error'); return; }
+  tasks.unshift({
+    id: 'T-' + String(tasks.length + 1).padStart(3, '0'),
+    title, member: document.getElementById('taskMember').value,
+    mid: '', priority: document.getElementById('taskPriority').value,
+    status: 'todo', due: document.getElementById('taskDue').value || '2025-02-10',
+    assignee: document.getElementById('taskAssignee').value
+  });
+  closeModal();
+  showToast('Task created successfully', 'success');
+  renderTasks();
+}
+
+// ===================== SCHEDULING =====================
+
+function renderCalendar() {
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('calMonthLabel').textContent = `${months[currentCalMonth]} ${currentCalYear}`;
+
+  const firstDay = new Date(currentCalYear, currentCalMonth, 1).getDay();
+  const daysInMonth = new Date(currentCalYear, currentCalMonth + 1, 0).getDate();
+  const daysInPrev = new Date(currentCalYear, currentCalMonth, 0).getDate();
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+
+  const eventDates = [...new Set(appointments.map(a => a.date))];
+
+  let html = '';
+  // Previous month days
+  for (let i = firstDay - 1; i >= 0; i--) {
+    html += `<div class="cal-day other-month">${daysInPrev - i}</div>`;
+  }
+  // Current month days
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${currentCalYear}-${String(currentCalMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isToday = dateStr === todayStr;
+    const hasEvent = eventDates.includes(dateStr);
+    const isSelected = selectedCalDate === dateStr;
+    let cls = 'cal-day';
+    if (isToday) cls += ' today';
+    if (hasEvent) cls += ' has-event';
+    if (isSelected && !isToday) cls += ' today';
+    html += `<div class="${cls}" onclick="selectCalDate('${dateStr}')">${d}</div>`;
+  }
+  // Next month days
+  const totalCells = firstDay + daysInMonth;
+  const remaining = (7 - (totalCells % 7)) % 7;
+  for (let i = 1; i <= remaining; i++) {
+    html += `<div class="cal-day other-month">${i}</div>`;
+  }
+
+  document.getElementById('calGrid').innerHTML = html;
+  renderAppointments(selectedCalDate || todayStr);
+}
+
+function selectCalDate(dateStr) {
+  selectedCalDate = dateStr;
+  renderCalendar();
+  const d = new Date(dateStr + 'T12:00:00');
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  document.getElementById('selectedDateLabel').textContent = `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+}
+
+function renderAppointments(dateStr) {
+  const appts = appointments.filter(a => a.date === dateStr);
+  const typeIcons = { 'Follow-up':'fa-stethoscope', 'Pulmonary Rehab':'fa-lungs', 'Therapy Session':'fa-brain', 'PT Evaluation':'fa-walking', 'Lab Work':'fa-flask', 'Neurology Follow-up':'fa-brain', 'Home Safety Eval':'fa-home' };
+  document.getElementById('apptList').innerHTML = appts.length ? appts.map(a => `
+    <div style="padding:0.65rem;background:var(--bg-primary);border-radius:8px;border-left:3px solid ${a.status==='Confirmed'?'var(--accent)':'var(--warning)'};">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div>
+          <div style="font-size:0.82rem;font-weight:600;">${a.member}</div>
+          <div style="font-size:0.75rem;color:var(--text-muted);"><i class="fas ${typeIcons[a.type]||'fa-calendar'}" style="margin-right:4px;"></i>${a.type}</div>
+        </div>
+        <span class="badge badge-${a.status==='Confirmed'?'accent':'warning'}" style="font-size:0.65rem;">${a.status}</span>
+      </div>
+      <div style="font-size:0.75rem;color:var(--text-secondary);margin-top:4px;"><i class="fas fa-clock" style="margin-right:4px;"></i>${a.time} (${a.duration}) | ${a.provider}</div>
+    </div>
+  `).join('') : '<div style="text-align:center;padding:1.5rem;color:var(--text-muted);font-size:0.82rem;">No appointments scheduled</div>';
+}
+
+function changeMonth(delta) {
+  currentCalMonth += delta;
+  if (currentCalMonth > 11) { currentCalMonth = 0; currentCalYear++; }
+  if (currentCalMonth < 0) { currentCalMonth = 11; currentCalYear--; }
+  selectedCalDate = null;
+  document.getElementById('selectedDateLabel').textContent = "Today's Appointments";
+  renderCalendar();
+}
+
+function openNewAppointmentModal() {
+  openModal(`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
+      <div style="font-size:1.1rem;font-weight:700;">New Appointment</div>
+      <button class="btn-icon" onclick="closeModal()"><i class="fas fa-times"></i></button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div><label class="form-label">Member</label><select class="form-input" id="apptMember">${members.map(m=>`<option>${m.name}</option>`).join('')}</select></div>
+      <div><label class="form-label">Appointment Type</label><select class="form-input" id="apptType"><option>Follow-up</option><option>Therapy Session</option><option>Lab Work</option><option>PT Evaluation</option><option>Home Safety Eval</option><option>Other</option></select></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div><label class="form-label">Date</label><input class="form-input" type="date" id="apptDate"></div>
+        <div><label class="form-label">Time</label><input class="form-input" type="time" id="apptTime"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div><label class="form-label">Duration</label><select class="form-input" id="apptDur"><option>15 min</option><option>30 min</option><option selected>45 min</option><option>60 min</option><option>90 min</option></select></div>
+        <div><label class="form-label">Provider</label><select class="form-input" id="apptProv"><option>Dr. Sarah Jensen</option><option>Rebecca Perez, RN</option><option>Michael Okafor, LCSW</option><option>Lisa Wang, NP</option></select></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:1.25rem;justify-content:flex-end;">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="createAppointment()"><i class="fas fa-plus"></i> Schedule</button>
+    </div>
+  `);
+}
+
+function createAppointment() {
+  const date = document.getElementById('apptDate').value || '2025-02-10';
+  const time = document.getElementById('apptTime').value || '10:00';
+  const [h, m] = time.split(':');
+  const ampm = parseInt(h) >= 12 ? 'PM' : 'AM';
+  const h12 = parseInt(h) % 12 || 12;
+  appointments.push({
+    id: 'A-' + String(appointments.length + 1).padStart(3, '0'),
+    member: document.getElementById('apptMember').value,
+    type: document.getElementById('apptType').value,
+    time: `${h12}:${m} ${ampm}`,
+    duration: document.getElementById('apptDur').value,
+    provider: document.getElementById('apptProv').value,
+    date, status: 'Pending'
+  });
+  closeModal();
+  showToast('Appointment scheduled successfully', 'success');
+  renderCalendar();
+}
+
+// ===================== MESSAGES =====================
+
+function renderMessages() {
+  const convList = document.getElementById('convList');
+  convList.innerHTML = conversations.map((c, i) => `
+    <div style="padding:0.75rem 1rem;border-bottom:1px solid var(--border);cursor:pointer;display:flex;gap:10px;align-items:flex-start;${i===0?'background:var(--accent-dim);':''}" onclick="selectConversation(${c.id})">
+      <div style="position:relative;">
+        <div class="avatar" style="background:${c.color}15;color:${c.color};width:36px;height:36px;font-size:0.75rem;">${c.initials}</div>
+        ${c.online ? '<div style="position:absolute;bottom:0;right:0;width:10px;height:10px;border-radius:50%;background:var(--accent);border:2px solid var(--bg-secondary);"></div>' : ''}
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:0.82rem;font-weight:${c.unread ? '700' : '500'};color:var(--text-primary);">${c.name}</span>
+          <span style="font-size:0.65rem;color:var(--text-muted);flex-shrink:0;">${c.time}</span>
+        </div>
+        <div style="font-size:0.75rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;">${c.lastMsg}</div>
+      </div>
+      ${c.unread ? `<div style="width:18px;height:18px;border-radius:50%;background:var(--accent);color:var(--bg-primary);font-size:0.6rem;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;margin-top:4px;">${c.unread}</div>` : ''}
+    </div>
+  `).join('');
+
+  const chatMsgs = document.getElementById('chatMessages');
+  chatMsgs.innerHTML = chatHistory.map(m => `
+    <div style="display:flex;${m.from === 'me' ? 'justify-content:flex-end;' : ''}">
+      <div class="chat-bubble ${m.from === 'me' ? 'chat-outgoing' : 'chat-incoming'}">
+        ${m.text}
+        <div style="font-size:0.65rem;${m.from === 'me' ? 'color:rgba(15,212,164,0.6);' : 'color:var(--text-muted);'}margin-top:4px;text-align:right;">${m.time}</div>
+      </div>
+    </div>
+  `).join('');
+  chatMsgs.scrollTop = chatMsgs.scrollHeight;
+}
+
+function selectConversation(id) {
+  const c = conversations.find(x => x.id === id);
+  if (c) c.unread = 0;
+  renderMessages();
+}
+
+function
